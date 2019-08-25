@@ -1,0 +1,26 @@
+---
+
+- name: Check if the repository exists
+  uri:
+    url: "http://{{ elastic_host }}:{{ elastic_port }}/_snapshot"
+    method: GET
+  register: snapshot_results
+
+- name: Create snapshot repository if it doesn't exits already
+  uri:
+    url: "http://{{ elastic_host }}:{{ elastic_port }}/_snapshot/{{ snapshot_repository }}"
+    method: PUT
+    body:
+      type: s3
+      settings:
+        bucket: "{{ snapshot_bucket }}"
+        region: "{{ aws_region }}"
+        access_key: "{{ ec2_access_key }}"
+        secret_key: "{{ ec2_secret_key}}"
+    body_format: json
+  when: snapshot_results.json.snapshot_repository is not defined
+
+- name: Create snapshot
+  uri:
+    url: "http://{{ elastic_host }}:{{ elastic_port }}/_snapshot/{{ snapshot_repository }}/{{ snapshot_name }}?wait_for_completion={{ wait_for_completion }}"
+    method: PUT
